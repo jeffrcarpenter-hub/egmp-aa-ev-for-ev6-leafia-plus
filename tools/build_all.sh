@@ -4,8 +4,7 @@
 #   2. build the energy-model template    -> dist/ev_batch.bin + EvModelTemplate.java
 #   3. compile the GPM sender classes     -> gpm-ev/build/smali
 #   4. patch the GPM smali tree           -> build/gpm-smali
-#   5. assemble classes.dex, add it to the stock APK
-#                                       -> dist/HKMC_GPM.classes.dex, dist/HKMC_GPM.apk
+#   5. assemble classes.dex             -> dist/HKMC_GPM.classes.dex
 #   6. build the NEMESIS package (deltas) -> dist/aa.ev.model.zip
 #
 # Requires: ~/tools/env.sh (Android SDK), smali/baksmali, capstone and bsdiff4
@@ -30,22 +29,30 @@ echo "== 3. compile sender classes =="
 sh gpm-ev/build.sh
 
 echo "== 4. patch GPM smali =="
+# Leafia v1.0.5's GPM code is the same classes.dex on every car in
+# packages/aa-ev-model/cars (md5 6124a666...): take it from that car's Leafia
+# HKMC_GPM.apk (the live one, e.g. from Leafia's port kit), once.
+B=private/car-current-leafia105
+if [ ! -s "$B/classes.dex" ]; then
+    unzip -p "$B/HKMC_GPM.apk" classes.dex > "$B/classes.dex"
+fi
+[ "$(md5sum < "$B/classes.dex" | cut -d' ' -f1)" = 6124a666b2ae11883e91de85c19389d2 ] ||
+    { echo "$B/classes.dex is not Leafia v1.0.5's GPM code" >&2; exit 1; }
+if [ ! -d "$B/smali-gpm" ]; then
+    baksmali d "$B/classes.dex" -o "$B/smali-gpm"
+fi
 "$PY" tools/patch_gpm_smali.py
 
-echo "== 5. assemble dex + APK =="
+echo "== 5. assemble dex =="
+# The APK is assembled on the head unit (lpatch zipadd onto the car's own
+# stock APK from Leafia's backup), so only the dex is built here.
 smali a -j 1 --api 18 -o dist/HKMC_GPM.classes.dex build/gpm-smali
-# Same construction as Leafia's GPM: the stock APK (no classes.dex) plus a
-# stored classes.dex, via lpatch zipadd. Deterministic, so the md5 the package
-# expects on the car is fixed.
-rm -f dist/HKMC_GPM.apk
-$LPATCH zipadd private/car-neev-260507/LEAFIA/private/stock/app/HKMC_GPM.apk \
-    dist/HKMC_GPM.classes.dex dist/HKMC_GPM.apk
 
 echo "== 6. NEMESIS package =="
 sh packages/aa-ev-model/build.sh
 
 echo
 echo "built:"
-md5sum dist/libautoreceiver_infobank.so dist/HKMC_GPM.apk dist/aa.ev.model.zip
+md5sum dist/libautoreceiver_infobank.so dist/HKMC_GPM.classes.dex dist/aa.ev.model.zip
 echo
 echo "verify the package scripts: bash tools/test_package.sh"

@@ -1,13 +1,23 @@
 #!/system/bin/sh
 # aa.ev.model — advertise ELECTRIC + sensor 23 and send the energy model to AA.
 #
+# Cars: every E-GMP car HMG Leafia Plus v1.0.5 builds with the US Android Auto
+# library (files/cars): Ioniq 5 US (NEEV, NEEV23), Kia EV6 US and Canada.
+# Leafia's turn-by-turn GPM code (classes.dex) is byte-identical on all of
+# them; only the APK wrapper differs. So one set of deltas fits every car:
+#
 # The package ships no Hyundai/Google binaries. files/ holds lpatch deltas
 # (*.lpd) and lpatch itself; preinstall rebuilds the payloads into $PAYLOAD
-# from the unit's own Leafia v1.0.5 files (lpatch refuses any other source)
-# and checks them against files/MD5SUMS.
-# Install gates on the live files being exactly Leafia v1.0.5's files (or this
-# package's own, with a verified Leafia snapshot, for a reinstall/upgrade),
-# snapshots them, and swaps in the payloads. Uninstall restores the snapshot
+# from the unit's own files (lpatch refuses any other source):
+#   Leafia's stock GPM backup (odex) --Leafia's own .lpd--> Leafia's classes.dex
+#   Leafia's classes.dex --files/classes.dex.lpd--> our classes.dex
+#   Leafia's stock GPM backup (apk) + our classes.dex --lpatch zipadd--> our APK
+#   Leafia's library --files/libautoreceiver_infobank.so.lpd--> our library
+# As a self-check the same zipadd with Leafia's classes.dex must give exactly
+# the live Leafia APK for this car (files/cars) before anything is used.
+# Install gates on the live files being exactly Leafia v1.0.5's files for this
+# car (or this package's own, with a verified Leafia snapshot, for a
+# reinstall/upgrade), snapshots them, and swaps in the payloads. Uninstall restores the snapshot
 # byte for byte, but only for files that are still ours (if Leafia was
 # uninstalled in between, its files are not put back).
 #
@@ -31,11 +41,22 @@ GPM_APK=$APP_DIR/HKMC_GPM.apk
 GPM_ODEX=$APP_DIR/HKMC_GPM.odex
 LIB_LIVE=/system/lib/libautoreceiver_infobank.so
 
-# Live files must match these (Leafia v1.0.5 on NEEV.USA 260507) unless this
-# package's own payload is already in place.
-SUM_BASE_APK=0308224b94c7e1b81d372a8ea1535aed
-SUM_BASE_ODEX=7d81a60aabf89efdd4ce12ba9787248e
-SUM_BASE_LIB=c08410a8d32a615b1aa805cd8a243d52
+# Leafia's turn-by-turn part keeps the stock GPM here while it's installed.
+LEAFIA_BACKUP=/data/nemesis/backup/projection.tbt
+# md5 of the payload APK this install built (it depends on the car's own stock
+# APK, so it isn't in files/MD5SUMS); preuninstall and status read it.
+PAY_APK_SUM_FILE=$BACKUP_DIR/payload-apk.md5
+
+# Per car (files/cars, by ro.build.product prefix), set by load_car:
+#   CAR_NAME, LEAFIA_SET (Leafia's patch set), SUM_BASE_APK / SUM_BASE_LIB
+#   (Leafia v1.0.5's live files), SUM_STOCK_APK / SUM_STOCK_ODEX (the stock
+#   GPM in Leafia's backup).
+CAR_NAME=
+LEAFIA_SET=
+SUM_BASE_APK=
+SUM_BASE_LIB=
+SUM_STOCK_APK=
+SUM_STOCK_ODEX=
 
 GPM_PKG=com.google.android.projection.sink
 
@@ -102,11 +123,43 @@ chown_system() {
     chown 0.0 "$1" 2>/dev/null || chown 0:0 "$1" 2>/dev/null || true
 }
 
-# the snapshot holds exactly Leafia v1.0.5's three files
+# load_car: find this car in files/cars by ro.build.product; 1 if not listed.
+# Line: <prefix> <leafia set> <leafia apk> <leafia lib> <stock apk> <stock odex> <name...>
+load_car() {
+    local _p _pre _set _apk _lib _sapk _sodex _name
+    _p=$(getprop ro.build.product 2>/dev/null)
+    [ -n "$_p" ] && [ -s "$FILES/cars" ] || return 1
+    while read -r _pre _set _apk _lib _sapk _sodex _name; do
+        case "$_pre" in ''|\#*) continue ;; esac
+        case "$_p" in
+            "$_pre"*)
+                CAR_NAME=$_name
+                LEAFIA_SET=$_set
+                SUM_BASE_APK=$_apk
+                SUM_BASE_LIB=$_lib
+                SUM_STOCK_APK=$_sapk
+                SUM_STOCK_ODEX=$_sodex
+                return 0
+                ;;
+        esac
+    done < "$FILES/cars"
+    return 1
+}
+
+# the snapshot holds exactly Leafia v1.0.5's GPM APK and library for this car
+# (and an odex: the one Leafia's install left, whatever its bytes)
 snapshot_is_base() {
     [ "$(file_md5 "$BACKUP_DIR/HKMC_GPM.apk")" = "$SUM_BASE_APK" ] &&
-    [ "$(file_md5 "$BACKUP_DIR/HKMC_GPM.odex")" = "$SUM_BASE_ODEX" ] &&
+    [ -s "$BACKUP_DIR/HKMC_GPM.odex" ] &&
     [ "$(file_md5 "$BACKUP_DIR/libautoreceiver_infobank.so")" = "$SUM_BASE_LIB" ]
+}
+
+# payload_apk_sum: md5 of the GPM APK this package installed ("" if unknown)
+payload_apk_sum() {
+    local _s
+    [ -s "$PAY_APK_SUM_FILE" ] || return 0
+    read -r _s < "$PAY_APK_SUM_FILE"
+    echo "$_s"
 }
 
 # NEMESIS 1.15 force-updates an installed package from a USB drive left in at
@@ -135,27 +188,66 @@ clean_payload() {
     return 0
 }
 
-# build_payloads <Leafia apk> <Leafia lib>: rebuild our payloads into $PAYLOAD.
-# lpatch only writes a result when the source is the exact file the delta was
-# made from; the results must then match files/MD5SUMS.
+lp() {
+    "$FILES/lpatch" "$@" >> "$LOG" 2>&1
+}
+
+# build_payloads <Leafia lib>: rebuild our payloads into $PAYLOAD from Leafia's
+# stock GPM backup and the given Leafia library (live, or our snapshot on a
+# reinstall). lpatch only writes a result when the source is the exact file
+# the delta was made from; every fixed result must match files/MD5SUMS.
 build_payloads() {
-    local _n _src
+    local _sapk="$LEAFIA_BACKUP/HKMC_GPM.apk" _sodex="$LEAFIA_BACKUP/HKMC_GPM.odex"
     clean_payload
     mkdir -p "$PAYLOAD" || { log "FAIL: mkdir $PAYLOAD"; return 1; }
     chmod 755 "$FILES/lpatch" 2>/dev/null || true
-    for _n in HKMC_GPM.apk libautoreceiver_infobank.so; do
-        case "$_n" in
-            *.apk) _src="$1" ;;
-            *) _src="$2" ;;
-        esac
-        if ! "$FILES/lpatch" delta "$FILES/$_n.lpd" "$_src" "$PAYLOAD/$_n" >> "$LOG" 2>&1; then
-            log "FAIL: could not rebuild $_n from $_src"
-            return 1
-        fi
-        sum_is "$PAYLOAD/$_n" "$(manifest_sum "$_n")" || return 1
-    done
-    log "rebuilt payloads from $1 and $2"
+
+    # Leafia's stock GPM backup must be the stock files Leafia built from
+    sum_is "$_sapk" "$SUM_STOCK_APK" || { log "FAIL: Leafia's stock GPM backup is missing or not this car's"; return 1; }
+    sum_is "$_sodex" "$SUM_STOCK_ODEX" || { log "FAIL: Leafia's stock GPM backup is missing or not this car's"; return 1; }
+
+    # Leafia's classes.dex, rebuilt from the stock odex with Leafia's own delta
+    if ! lp delta "$FILES/leafia/$LEAFIA_SET.HKMC_GPM.tbt.lpd" "$_sodex" "$PAYLOAD/leafia.dex"; then
+        log "FAIL: could not rebuild Leafia's GPM code from $_sodex"
+        return 1
+    fi
+    sum_is "$PAYLOAD/leafia.dex" "$(manifest_sum leafia.dex)" || return 1
+
+    # self-check: stock APK + Leafia's code must be exactly the live Leafia APK
+    if ! lp zipadd "$_sapk" "$PAYLOAD/leafia.dex" "$PAYLOAD/leafia.apk"; then
+        log "FAIL: could not assemble Leafia's APK for the self-check"
+        return 1
+    fi
+    sum_is "$PAYLOAD/leafia.apk" "$SUM_BASE_APK" || { log "FAIL: self-check: rebuilt Leafia APK differs"; return 1; }
+    rm -f "$PAYLOAD/leafia.apk"
+
+    # our classes.dex, then our APK
+    if ! lp delta "$FILES/classes.dex.lpd" "$PAYLOAD/leafia.dex" "$PAYLOAD/classes.dex"; then
+        log "FAIL: could not rebuild our GPM code"
+        return 1
+    fi
+    sum_is "$PAYLOAD/classes.dex" "$(manifest_sum classes.dex)" || return 1
+    if ! lp zipadd "$_sapk" "$PAYLOAD/classes.dex" "$PAYLOAD/HKMC_GPM.apk"; then
+        log "FAIL: could not assemble our GPM APK"
+        return 1
+    fi
+    rm -f "$PAYLOAD/leafia.dex" "$PAYLOAD/classes.dex"
+    file_md5 "$PAYLOAD/HKMC_GPM.apk" > "$PAYLOAD/HKMC_GPM.apk.md5" || return 1
+
+    # our library
+    if ! lp delta "$FILES/libautoreceiver_infobank.so.lpd" "$1" "$PAYLOAD/libautoreceiver_infobank.so"; then
+        log "FAIL: could not rebuild libautoreceiver_infobank.so from $1"
+        return 1
+    fi
+    sum_is "$PAYLOAD/libautoreceiver_infobank.so" "$(manifest_sum libautoreceiver_infobank.so)" || return 1
+    log "rebuilt payloads for $CAR_NAME (apk $(payload_built_sum))"
     return 0
+}
+
+payload_built_sum() {
+    local _s
+    read -r _s < "$PAYLOAD/HKMC_GPM.apk.md5" 2>/dev/null
+    echo "$_s"
 }
 
 # copy beside the target, then rename over it (new inode; a running app keeps

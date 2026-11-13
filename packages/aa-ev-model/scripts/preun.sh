@@ -9,8 +9,11 @@ if [ ! -d "$BACKUP_DIR" ]; then
     exit 0
 fi
 
-SUM_PAY_APK=$(manifest_sum HKMC_GPM.apk)
+SUM_PAY_APK=$(payload_apk_sum)
 SUM_PAY_LIB=$(manifest_sum libautoreceiver_infobank.so)
+# Leafia's APK md5 for this car; an unlisted car leaves it empty, and then the
+# APK only counts as ours by its recorded payload checksum.
+load_car || log "WARN: car not listed; restoring by checksums only"
 
 apps_hold
 if ! sys_rw; then
@@ -25,8 +28,8 @@ fi
 _rc=0
 _live_apk=$(file_md5 "$GPM_APK")
 _live_lib=$(file_md5 "$LIB_LIVE")
-if [ "$_live_apk" = "$SUM_PAY_APK" ] ||
-   { [ "$_live_lib" = "$SUM_PAY_LIB" ] && [ "$_live_apk" != "$SUM_BASE_APK" ]; }; then
+if { [ -n "$SUM_PAY_APK" ] && [ "$_live_apk" = "$SUM_PAY_APK" ]; } ||
+   { [ -n "$SUM_BASE_APK" ] && [ "$_live_lib" = "$SUM_PAY_LIB" ] && [ "$_live_apk" != "$SUM_BASE_APK" ]; }; then
     if [ -s "$BACKUP_DIR/HKMC_GPM.apk" ] && [ -s "$BACKUP_DIR/HKMC_GPM.odex" ]; then
         put_lib "$BACKUP_DIR/HKMC_GPM.apk" "$GPM_APK" || _rc=1
         put_lib "$BACKUP_DIR/HKMC_GPM.odex" "$GPM_ODEX" || _rc=1

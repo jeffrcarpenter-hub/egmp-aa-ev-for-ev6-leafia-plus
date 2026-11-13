@@ -1,15 +1,29 @@
 # egmp-aa-ev-feat
 
-Real EV routing in Google Maps on Android Auto for the Hyundai Ioniq 5's Gen5W head unit: battery % on arrival, charging stops, realistic charge times, and automatic battery preconditioning on the way to a fast charger. Built on [NEMESIS](https://github.com/xwtk/hmg_nemesis) and [HMG Leafia Plus](https://github.com/VysseCodes/HMG-Leafia-Plus).
+Real EV routing in Google Maps on Android Auto for E-GMP cars with a Gen5W head unit and HMG Leafia Plus (Hyundai Ioniq 5, Kia EV6): battery % on arrival, charging stops, realistic charge times, and automatic battery preconditioning on the way to a fast charger. Built on [NEMESIS](https://github.com/xwtk/hmg_nemesis) and [HMG Leafia Plus](https://github.com/VysseCodes/HMG-Leafia-Plus).
 
 > [!WARNING]
 > This modifies your infotainment system's files. The installer checks every file first and keeps a byte-for-byte backup, but you use it at your own risk. Not affiliated with Hyundai, Kia or Google.
 
 ## Requirements
 
-- Hyundai Ioniq 5 (US), Gen5W software `NEEV.USA.0000.V015.012.260507`
+- One of these cars, on the firmware HMG Leafia Plus supports in full mode (`packages/aa-ev-model/cars`):
+
+  | Car | Firmware | Status |
+  |---|---|---|
+  | Hyundai Ioniq 5 US (2022, 2023) | `NEEV.USA` / `NEEV23.USA` 260507 | verified on a car (original package) |
+  | Kia EV6 US | `CVEV.USA` 260507 | not yet tested on a car |
+  | Kia EV6 Canada | `CVEV.CAN` 260206 | not yet tested on a car |
+
+  Not supported: Ioniq 5 Canada (its Android Auto library differs), Ioniq 6 and any car Leafia runs only in basic mode (no turn-by-turn, which preconditioning needs).
 - [NEMESIS](https://github.com/xwtk/hmg_nemesis) installed
-- **[HMG Leafia Plus](https://github.com/VysseCodes/HMG-Leafia-Plus) v1.0.5 installed first.** This package builds on Leafia's modified Android Auto files; without exactly v1.0.5 the installer refuses and changes nothing.
+- **[HMG Leafia Plus](https://github.com/VysseCodes/HMG-Leafia-Plus) v1.0.5 installed first, in full mode.** This package builds on Leafia's modified Android Auto files and rebuilds its own from Leafia's backup of the stock GPM; with anything else the installer refuses and changes nothing. HMG-API is not needed (and not supported).
+
+### How one package fits every car
+
+Leafia v1.0.5's Android Auto app code (`HKMC_GPM` `classes.dex`) is byte-identical on the Ioniq 5 and EV6; only the APK wrapper differs per car, and the Android Auto library is the same file on all of them. So the package ships one set of deltas, and on the head unit rebuilds Leafia's code from the stock GPM in Leafia's own backup (with Leafia's own delta), checks that this gives exactly the live Leafia APK, turns it into ours and wraps it in the car's own stock APK.
+
+The car-side numbers (binder transactions and HEV flags for battery data and preconditioning) are defined by each car's framework, which differs between models. They're used as before on the Ioniq 5 framework they were verified on; on any other car they're used only if the car's framework names exactly those numbers (`IHEVService$Stub.TRANSACTION_setBattCondEvStation` and so on, `CarIds.java`), otherwise that feature stays off and the log says why.
 
 ## Features
 
@@ -18,6 +32,7 @@ Real EV routing in Google Maps on Android Auto for the Hyundai Ioniq 5's Gen5W h
 - **Cold weather:** live outside temperature raises heating and rolling losses in the model.
 - **Charge times:** calibrated on real DC sessions and the car's own estimate, including the slow last 10–20 %.
 - **Preconditioning:** when the next stop is a charger over 50 kW within an hour, the car is asked to warm the battery. Turn it off with the car's own *battery conditioning* setting.
+- **EV6:** the EV6 uses the Ioniq 5 model (the same 77.4 kWh E-GMP pack and 800 V charging); its usable capacity is learned from the BMS, so the charge curve and tables scale to it. Its road load is a little lower than the Ioniq 5's, so arrival % should be slightly conservative until EV6 logs tune it.
 - **EV logs:** driving and charging, whenever the head unit is on; copied to any USB drive with an `egmp-aa-ev-logs` folder; share them through an [EV log issue](https://github.com/willemcvu/egmp-aa-ev-feat/issues/new?template=log-submission.yml).
 
 ## Install
@@ -25,7 +40,7 @@ Real EV routing in Google Maps on Android Auto for the Hyundai Ioniq 5's Gen5W h
 1. Download the `-usb.zip` from [Releases](../../releases) and copy its **contents** to an empty FAT32/exFAT drive.
 2. Car on, plug the drive into a USB data port, tap **Yes** when NEMESIS asks. The head unit restarts when it's done.
 
-It upgrades earlier versions in place. To uninstall: NEMESIS Manager (press NAV three times) → `aa.ev.model` → uninstall, then reboot; Leafia's files are restored exactly. Uninstall this before updating Leafia. More in the release's [README.txt](release/README.txt).
+It upgrades earlier versions in place (an Ioniq 5 running the original package included). To uninstall: NEMESIS Manager (press NAV three times) → `aa.ev.model` → uninstall, then reboot; Leafia's files are restored exactly. Uninstall this before updating Leafia. More in the release's [README.txt](release/README.txt).
 
 The release contains no Hyundai or Google files, only small binary deltas that [`lpatch`](third_party/lpatch) applies to your unit's own files.
 

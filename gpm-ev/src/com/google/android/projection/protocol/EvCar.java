@@ -128,6 +128,9 @@ final class EvCar {
 
     /** IHEVService.getHEVStatus(flag) via binder transaction 3, -1 on failure. */
     private static int hevRead(int flag) {
+        if (!CarIds.hevRead()) {
+            return -1;
+        }
         try {
             IBinder b = sHev;
             if (b == null) {
@@ -196,6 +199,9 @@ final class EvCar {
     }
 
     private static IBinder hscan() throws Exception {
+        if (!CarIds.hscan()) {
+            return null;
+        }
         IBinder b = sHcan;
         if (b == null) {
             b = service(HCAN_SERVICE);
@@ -444,7 +450,7 @@ final class EvCar {
 
     private static float climateUncached(int flag) {
         try {
-            IBinder b = datc();
+            IBinder b = CarIds.datc() ? datc() : null;
             if (b == null) {
                 return Float.NaN;
             }
@@ -472,7 +478,7 @@ final class EvCar {
     /** IDATCService.isUnitCelsius(unit): 1 yes, 0 no, -1 unknown. */
     static int climateUnitIsCelsius(int unitRaw) {
         try {
-            IBinder b = datc();
+            IBinder b = CarIds.datc() ? datc() : null;
             if (b == null) {
                 return -1;
             }
@@ -528,6 +534,9 @@ final class EvCar {
     private static void registerBcm() {
         try {
             sDriveMode = -1;
+            if (!CarIds.bcmListen()) {
+                return;
+            }
             IBinder bcm = service(BCM_SERVICE);
             if (bcm == null || !BCM_TOKEN.equals(bcm.getInterfaceDescriptor())) {
                 return;

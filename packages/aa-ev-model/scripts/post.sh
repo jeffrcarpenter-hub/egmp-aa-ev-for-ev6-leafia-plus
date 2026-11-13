@@ -5,11 +5,15 @@ log "postinstall aa.ev.model"
 trap '[ $? = 0 ] || { sys_ro; apps_release; }' EXIT
 
 # payloads rebuilt by preinstall: check them again before touching /system
-sum_is "$PAYLOAD/HKMC_GPM.apk" "$(manifest_sum HKMC_GPM.apk)" || exit 1
+load_car || { log "FAIL: car not listed"; exit 1; }
+_pay_apk=$(payload_built_sum)
+[ -n "$_pay_apk" ] || { log "FAIL: no payload checksum"; exit 1; }
+sum_is "$PAYLOAD/HKMC_GPM.apk" "$_pay_apk" || exit 1
 sum_is "$PAYLOAD/libautoreceiver_infobank.so" "$(manifest_sum libautoreceiver_infobank.so)" || exit 1
 
 apps_hold
 snapshot_all || exit 1
+echo "$_pay_apk" > "$PAY_APK_SUM_FILE" || { log "FAIL: could not record the payload checksum"; exit 1; }
 if ! sys_rw; then
     log "FAIL: remount /system rw"
     exit 1

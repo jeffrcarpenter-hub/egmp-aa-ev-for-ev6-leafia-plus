@@ -7,9 +7,14 @@ echo "off switch ($OFF_PROP): $(getprop $OFF_PROP)"
 echo "live HKMC_GPM.apk:    $(file_md5 $GPM_APK)"
 echo "live HKMC_GPM.odex:   $(file_md5 $GPM_ODEX)"
 echo "live receiver lib:    $(file_md5 $LIB_LIVE)"
+if load_car; then
+    echo "car: $CAR_NAME (Leafia set $LEAFIA_SET)"
+else
+    echo "car: $(getprop ro.build.product) (not listed)"
+fi
 echo "base   (Leafia 1.0.5): apk $SUM_BASE_APK"
-echo "                     : odex $SUM_BASE_ODEX"
 echo "                     : lib $SUM_BASE_LIB"
+echo "installed payload apk: $(payload_apk_sum)"
 if [ -f "$FILES/MD5SUMS" ]; then
     echo "payload:"
     cat "$FILES/MD5SUMS"

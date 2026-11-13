@@ -44,10 +44,11 @@ Tests (host): `sh gpm-ev/test/run.sh` (PrecondTest, SenderRowTest, ScaleTest), `
 
 ## Build prerequisites
 
-The build patches files pulled from your own head unit. Put them in `private/` (gitignored):
+The build patches files pulled from a head unit with Leafia v1.0.5 (any car in `packages/aa-ev-model/cars`: Leafia's GPM code and library are the same bytes on all of them). Put them in `private/` (gitignored):
 
-- `private/car-current-leafia105/`: `HKMC_GPM.apk`, `HKMC_GPM.odex`, `libautoreceiver_infobank.so` from a unit with Leafia v1.0.5, and `smali-gpm/` (baksmali of that APK's `classes.dex`)
-- `private/car-neev-260507/LEAFIA/private/stock/app/HKMC_GPM.apk`: the stock GPM APK (Leafia's backup)
+- `private/car-current-leafia105/`: `HKMC_GPM.apk` (the live Leafia one; its `classes.dex` must be md5 `6124a666…`) and `libautoreceiver_infobank.so` (`c08410a8…`). Leafia's port kit (`leafia-kit-port.zip`) collects both in `LEAFIA/private/stock/`. The build extracts `classes.dex` and baksmalis it to `smali-gpm/`.
+
+The APK itself is assembled on the head unit from the car's own stock APK (Leafia's backup in `/data/nemesis/backup/projection.tbt/`), so no per-car stock files are needed here. `tools/unzipadd.py` recovers a stock APK from a Leafia APK if you want to predict the payload md5 for a car.
 
 Tools: Android SDK build-tools + `platforms/android-19`, smali/baksmali 2.5.2, Python with `capstone` and `bsdiff4`, `protoc`, `zip`, and `qemu-arm-static` (runs the ARM `lpatch` on the host).
 

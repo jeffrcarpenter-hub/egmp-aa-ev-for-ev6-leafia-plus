@@ -1,0 +1,7 @@
+# Cars this package installs on: E-GMP cars HMG Leafia Plus v1.0.5 builds in full
+# mode with the US Android Auto library (Leafia's patches/cars, */stock, */manifest).
+# <ro.build.product prefix> <Leafia GPM set> <Leafia HKMC_GPM.apk md5> <Leafia library md5> <stock HKMC_GPM.apk md5> <stock HKMC_GPM.odex md5> <car name>
+NEEV.USA.   neev 0308224b94c7e1b81d372a8ea1535aed c08410a8d32a615b1aa805cd8a243d52 2e9a5e738fffad4bca38421971a07364 6e67470f8ccd5afcd6c1408ac3fd9459 Hyundai Ioniq 5 (US)
+NEEV23.USA. neev 0308224b94c7e1b81d372a8ea1535aed c08410a8d32a615b1aa805cd8a243d52 2e9a5e738fffad4bca38421971a07364 6e67470f8ccd5afcd6c1408ac3fd9459 Hyundai Ioniq 5 2023 (US)
+CVEV.USA.   ev6  7c6df0f570677157326b105b6b87bfc2 c08410a8d32a615b1aa805cd8a243d52 c155b0fb97384e645987dc1bd0f85922 96cd7c27a9db19acb3900f21f57ea9f0 Kia EV6 (US)
+CVEV.CAN.   ev6  1929356d4d7126b28ffd3a6f13392fcf c08410a8d32a615b1aa805cd8a243d52 9e06512ccc9090338082ad38c74a223d 96cd7c27a9db19acb3900f21f57ea9f0 Kia EV6 (Canada)
