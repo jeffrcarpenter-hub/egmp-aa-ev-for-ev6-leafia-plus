@@ -1,6 +1,8 @@
 # Download
 
-**[egmp-aa-ev-leafia-v0.3.0-ev6-usb.zip](egmp-aa-ev-leafia-v0.3.0-ev6-usb.zip)**: the USB installer for NEMESIS. Not yet tested on a car. Checksum: [SHA256SUMS](SHA256SUMS).
+**[egmp-aa-ev-leafia-v0.4.0-ev6-usb.zip](egmp-aa-ev-leafia-v0.4.0-ev6-usb.zip)**: the USB installer for NEMESIS. Not yet tested on a car. Checksum: [SHA256SUMS](SHA256SUMS).
+
+Gives Android Auto's Google Maps the EV features: battery % now and on arrival (matching the dash), charging stops and charge times, plus live battery %, range and odometer for phone apps like A Better Route Planner.
 
 Needs: Kia EV6 US (260507) or Canada (260206), or Hyundai Ioniq 5 US (260507), with NEMESIS and HMG Leafia Plus v1.0.5 in full mode (with turn-by-turn). No HMG-API.
 
