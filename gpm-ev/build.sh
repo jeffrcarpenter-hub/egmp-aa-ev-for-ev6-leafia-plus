@@ -12,8 +12,9 @@ PKG=com/google/android/projection/protocol
 rm -rf build/classes build/dex build/smali
 mkdir -p build/classes build/dex
 
-javac -source 8 -target 8 \
-    -bootclasspath "$ANDROID_HOME/platforms/android-19/android.jar" \
+# JAVAC_ANDROID overrides how the Android API is given to javac (e.g.
+# "--release 8 -cp <android.jar>" when android.jar has no java.* classes).
+javac ${JAVAC_ANDROID:--source 8 -target 8 -bootclasspath "$ANDROID_HOME/platforms/android-19/android.jar"} \
     -d build/classes \
     src/$PKG/EvModelSender.java src/$PKG/EvModelTemplate.java src/$PKG/EvLogger.java \
     src/$PKG/EvCar.java src/$PKG/CarIds.java src/$PKG/EvDriveLog.java src/$PKG/EvRowAgg.java \

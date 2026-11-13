@@ -128,9 +128,6 @@ final class EvCar {
 
     /** IHEVService.getHEVStatus(flag) via binder transaction 3, -1 on failure. */
     private static int hevRead(int flag) {
-        if (!CarIds.hevRead()) {
-            return -1;
-        }
         try {
             IBinder b = sHev;
             if (b == null) {
@@ -139,6 +136,11 @@ final class EvCar {
                     return -1;
                 }
                 sHev = b;
+            }
+            if (!CarIds.hevRead()) {
+                // the number isn't confirmed on this car: ask the car's own
+                // interface by method name instead (read-only)
+                return CarIds.hevStatusByName(b, flag);
             }
             Parcel data = Parcel.obtain();
             Parcel reply = Parcel.obtain();

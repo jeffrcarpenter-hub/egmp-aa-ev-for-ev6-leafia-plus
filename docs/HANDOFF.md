@@ -46,11 +46,17 @@ Tests (host): `sh gpm-ev/test/run.sh` (PrecondTest, SenderRowTest, ScaleTest), `
 
 The build patches files pulled from a head unit with Leafia v1.0.5 (any car in `packages/aa-ev-model/cars`: Leafia's GPM code and library are the same bytes on all of them). Put them in `private/` (gitignored):
 
-- `private/car-current-leafia105/`: `HKMC_GPM.apk` (the live Leafia one; its `classes.dex` must be md5 `6124a666…`) and `libautoreceiver_infobank.so` (`c08410a8…`). Leafia's port kit (`leafia-kit-port.zip`) collects both in `LEAFIA/private/stock/`. The build extracts `classes.dex` and baksmalis it to `smali-gpm/`.
+- `private/car-current-leafia105/`: `classes.dex` (Leafia's GPM code, md5 `6124a666…`) and `libautoreceiver_infobank.so` (`c08410a8…`).
+
+**No car is needed for either.** `tools/build_all.sh` makes them from public data when they're missing, given checkouts of [HMG-Leafia-Plus](https://github.com/VysseCodes/HMG-Leafia-Plus) (full git history) and [hmg_nemesis](https://github.com/xwtk/hmg_nemesis) next to this repo (or `LEAFIA_REPO` / `NEMESIS_REPO`):
+- the library is byte-identical to the one NEMESIS's `projection-tbt` package ships;
+- the code is rebuilt by `tools/reconstruct_leafia_dex.py`: Leafia's first EV6 delta turns the stock odex into exactly NEMESIS's `projection-tbt` GPM code, which solves most of the stock odex; with that, an intermediate Leafia version comes out complete, and Leafia's final version comes out complete except its class tables, which are rebuilt from the intermediate one. The result must match Leafia's md5 or nothing is written.
+
+A live Leafia `HKMC_GPM.apk` from a car (Leafia's port kit) also works: the build takes `classes.dex` from it.
 
 The APK itself is assembled on the head unit from the car's own stock APK (Leafia's backup in `/data/nemesis/backup/projection.tbt/`), so no per-car stock files are needed here. `tools/unzipadd.py` recovers a stock APK from a Leafia APK if you want to predict the payload md5 for a car.
 
-Tools: Android SDK build-tools + `platforms/android-19`, smali/baksmali 2.5.2, Python with `capstone` and `bsdiff4`, `protoc`, `zip`, and `qemu-arm-static` (runs the ARM `lpatch` on the host).
+Tools: Android SDK build-tools + `platforms/android-19`, smali/baksmali 2.5.2, Python with `capstone` and `bsdiff4==1.3.1` (Leafia's pinned version; newer ones change `bsdiff4.core.diff`), `protoc`, `zip`, and `qemu-arm-static` (runs the ARM `lpatch` on the host). Without the Android SDK: the repackaged `dx` (`com.jakewharton.android.repackaged:dalvik-dx`) can stand in for `d8`, and `JAVAC_ANDROID="--release 8 -cp <android.jar>"` compiles against an `android.jar` that has no `java.*` classes (e.g. Robolectric's `android-all` 4.4).
 
 ## Install / upgrade
 

@@ -1,5 +1,6 @@
 EV routing for Android Auto - aa.ev.model @VERSION@
-https://github.com/willemcvu/egmp-aa-ev-feat   (built from commit @COMMIT@)
+https://github.com/jeffrcarpenter-hub/egmp-aa-ev-without-the-bullshit   (built from commit @COMMIT@)
+Based on https://github.com/willemcvu/egmp-aa-ev-feat. No HMG-API.
 
 Makes Google Maps on Android Auto treat the car as an EV:
 - battery % on arrival, charging stops, charge times and range, from the
@@ -20,9 +21,13 @@ before changing anything and keeps a backup for uninstall, but you use it at
 your own risk.
 
 REQUIREMENTS (the installer refuses anything else and changes nothing)
-- Hyundai Ioniq 5 (US), Gen5W head unit, software NEEV.USA.0000.V015.012.260507
+- One of these, Gen5W head unit:
+    Kia EV6 (US), software CVEV.USA.0000.V015.012.260507   (not yet tested on a car)
+    Kia EV6 (Canada), software CVEV.CAN.*.260206            (not yet tested on a car)
+    Hyundai Ioniq 5 (US, 2022/2023), software NEEV.USA / NEEV23.USA 260507
 - NEMESIS installed (https://github.com/xwtk/hmg_nemesis)
-- HMG Leafia Plus v1.0.5 installed (https://github.com/VysseCodes/HMG-Leafia-Plus)
+- HMG Leafia Plus v1.0.5 installed in full mode, i.e. with turn-by-turn
+  (https://github.com/VysseCodes/HMG-Leafia-Plus). Not HMG-API.
 
 INSTALL (also upgrades an earlier version in place)
 1. Copy the CONTENTS of this zip to the root of an empty FAT32/exFAT USB
@@ -60,16 +65,23 @@ Preconditioning has no switch here: use the car's battery conditioning setting.
 TROUBLESHOOTING
 - Log: /data/nemesis/aa.ev.model.log (also shown in NEMESIS Manager's
   aa.ev.model entry). Log copying: /data/nemesis/aa.ev.model.offload.log.
-- "not installed" message: your head unit software or Leafia version isn't
-  the one this build is for. Nothing was changed.
+- "not installed" message: your car, head unit software or Leafia version
+  isn't one this build is for, or Leafia's backup of the stock GPM app
+  (/data/nemesis/backup/projection.tbt) is missing. Nothing was changed; the
+  log says which.
+- To check the car-side numbers on a car other than the Ioniq 5:
+  adb logcat -s EvCar EvPrecond EvModelSender. "not the Ioniq 5 profile;
+  numbers checked by name" is expected on an EV6; a line "... expected N;
+  not using it on this car" means that feature is off on this car.
 - Android Auto won't start after install: wait a minute after the first
   boot; if it still won't, uninstall as above.
 - Wi-Fi shows an error after a restart: switch the car fully off and on.
 
 WHAT'S IN THE PACKAGE
 No Hyundai or Google files. packages/aa.ev.model.zip contains install
-scripts, the log copy service, two small patch files (deltas), and lpatch
-from HMG Leafia Plus (GPL-3.0, source in the repo under third_party/lpatch).
-On the head unit, lpatch rebuilds the modified GPM app and Android Auto
-library from the unit's own Leafia files, and only if those are
-byte-for-byte the expected ones.
+scripts, the log copy service, a car table, small patch files (deltas), and
+lpatch plus Leafia's own GPM deltas from HMG Leafia Plus (GPL-3.0, in the
+repo under third_party/). On the head unit, lpatch rebuilds Leafia's GPM
+code from Leafia's backup of the stock app, checks it gives exactly your
+live Leafia app, then builds the modified GPM app and Android Auto library
+from them, and only if every file is byte-for-byte the expected one.

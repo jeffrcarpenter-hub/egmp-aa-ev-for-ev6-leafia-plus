@@ -2,8 +2,6 @@ package com.google.android.projection.protocol;
 
 import android.util.Log;
 
-import android.os.Build;
-
 import java.io.FileInputStream;
 import java.lang.reflect.Field;
 import java.security.MessageDigest;
@@ -139,8 +137,7 @@ final class CarIds {
                 }
                 sIoniq5 = Boolean.valueOf(ok);
                 Log.i(TAG, "framework: " + (ok ? "verified Ioniq 5 profile"
-                        : "not the Ioniq 5 profile; numbers checked by name")
-                        + " (device " + Build.DEVICE + ")");
+                        : "not the Ioniq 5 profile; numbers checked by name"));
             }
             return sIoniq5.booleanValue();
         }
@@ -174,6 +171,33 @@ final class CarIds {
         synchronized (LOCK) {
             if (sHev == null) sHev = Boolean.valueOf(ok("HEV status", HEV_READ));
             return sHev.booleanValue();
+        }
+    }
+
+    private static volatile Object sHevProxy;
+    private static volatile java.lang.reflect.Method sHevStatus;
+
+    /**
+     * IHEVService.getHEVStatus(flag) through the framework's own interface,
+     * by method name: IHEVService$Stub.asInterface(binder).getHEVStatus(flag).
+     * Used for battery reads when the transaction number can't be confirmed
+     * by name; -1 on any failure.
+     */
+    static int hevStatusByName(android.os.IBinder b, int flag) {
+        try {
+            Object proxy = sHevProxy;
+            java.lang.reflect.Method m = sHevStatus;
+            if (proxy == null || m == null) {
+                Class<?> stub = Class.forName(HEV_STUB);
+                proxy = stub.getMethod("asInterface", android.os.IBinder.class).invoke(null, b);
+                m = Class.forName("com.hkmc.hev.IHEVService").getMethod("getHEVStatus", int.class);
+                sHevProxy = proxy;
+                sHevStatus = m;
+            }
+            return ((Integer) m.invoke(proxy, Integer.valueOf(flag))).intValue();
+        } catch (Throwable t) {
+            sHevProxy = null;
+            return -1;
         }
     }
 

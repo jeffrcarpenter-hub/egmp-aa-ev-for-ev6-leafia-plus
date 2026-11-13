@@ -17,6 +17,13 @@ LPATCH="${LPATCH:-qemu-arm-static third_party/lpatch/lpatch}"
 export PY LPATCH
 . "$HOME/tools/env.sh"
 
+B=private/car-current-leafia105
+if [ ! -s "$B/libautoreceiver_infobank.so" ]; then
+    # Leafia v1.0.5's library is the same file NEMESIS's projection-tbt ships
+    mkdir -p "$B"
+    cp "${NEMESIS_REPO:-../hmg_nemesis}/Sources/packages/projection-tbt/files/libautoreceiver_infobank.so" "$B/"
+fi
+
 echo "== 1. library patch =="
 "$PY" tools/patch_library.py
 
@@ -32,9 +39,22 @@ echo "== 4. patch GPM smali =="
 # Leafia v1.0.5's GPM code is the same classes.dex on every car in
 # packages/aa-ev-model/cars (md5 6124a666...): take it from that car's Leafia
 # HKMC_GPM.apk (the live one, e.g. from Leafia's port kit), once.
+# Without car files, both are rebuilt from public data: the library is the
+# file NEMESIS's projection-tbt ships, and the code comes from Leafia's git
+# history plus that package's GPM (tools/reconstruct_leafia_dex.py). Set
+# LEAFIA_REPO / NEMESIS_REPO to checkouts of HMG-Leafia-Plus and hmg_nemesis.
 B=private/car-current-leafia105
+mkdir -p "$B"
 if [ ! -s "$B/classes.dex" ]; then
-    unzip -p "$B/HKMC_GPM.apk" classes.dex > "$B/classes.dex"
+    if [ -s "$B/HKMC_GPM.apk" ]; then
+        unzip -p "$B/HKMC_GPM.apk" classes.dex > "$B/classes.dex"
+    else
+        "$PY" -I tools/reconstruct_leafia_dex.py "${LEAFIA_REPO:-../HMG-Leafia-Plus}" \
+            "${NEMESIS_REPO:-../hmg_nemesis}" "$B/classes.dex"
+    fi
+fi
+if [ ! -s "$B/libautoreceiver_infobank.so" ]; then
+    cp "${NEMESIS_REPO:-../hmg_nemesis}/Sources/packages/projection-tbt/files/libautoreceiver_infobank.so" "$B/"
 fi
 [ "$(md5sum < "$B/classes.dex" | cut -d' ' -f1)" = 6124a666b2ae11883e91de85c19389d2 ] ||
     { echo "$B/classes.dex is not Leafia v1.0.5's GPM code" >&2; exit 1; }

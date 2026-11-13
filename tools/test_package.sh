@@ -33,7 +33,7 @@ T=${TMPDIR:-/tmp}/aa-ev-pkgtest
 rm -rf "$T"
 mkdir -p "$T"
 PY="${PY:-python3}"
-QEMU="${QEMU:-qemu-arm-static}"
+QEMU="${QEMU:-$(command -v qemu-arm-static)}"
 LP_BIN="$ROOT/third_party/lpatch/lpatch"
 
 md5_of() { md5sum "$1" | cut -d' ' -f1; }

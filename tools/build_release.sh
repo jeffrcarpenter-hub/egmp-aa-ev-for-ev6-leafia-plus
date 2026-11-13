@@ -22,7 +22,7 @@ if unzip -l dist/aa.ev.model.zip | grep -E '\.(apk|so|odex|dex)$'; then
 fi
 
 OUT=dist/release
-NAME=egmp-aa-ev-feat-$VERSION-usb
+NAME=egmp-aa-ev-leafia-$VERSION-usb
 STAGE=$OUT/$NAME
 rm -rf "$STAGE" "$OUT/$NAME.zip"
 mkdir -p "$STAGE/packages"
