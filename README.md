@@ -28,6 +28,8 @@ The car-side numbers (binder transactions and HEV flags for battery data and pre
 ## Features
 
 - **EV routing:** the head unit sends Maps a vehicle energy model with the battery's live energy, so Maps plans stops and shows arrival %.
+- **Maps' battery % matches the dash:** the head unit also sends Maps how the car's battery % relates to the battery's energy (Android Auto sensor 26). On E-GMP the energy runs out at about 2 % on the dash, so without it Maps' percentages (now, on arrival, at charging stops) read up to 2 points low near empty. From [AwsomeFox/egmp-aa-ev-hmg-api](https://github.com/AwsomeFox/egmp-aa-ev-hmg-api) (`SocCurve.java`), without HMG-API.
+- **Live battery data for phone apps:** the battery %, the range the cluster shows and the odometer go to the phone as Android Auto's fuel and odometer data, so apps that read the car through Android Auto (A Better Route Planner, for one) show the live battery level. Also from AwsomeFox's project (`LiveData.java`).
 - **Real capacity:** usable capacity is learned from the BMS, not assumed from the new-car 77.4 kWh.
 - **Cold weather:** live outside temperature raises heating and rolling losses in the model.
 - **Charge times:** calibrated on real DC sessions and the car's own estimate, including the slow last 10–20 %.
@@ -81,5 +83,7 @@ sh tools/build_release.sh v0.2.0           # USB release zip
 ```
 
 ## Credits
+
+`SocCurve.java`, `LiveData.java` and their tests come from [AwsomeFox/egmp-aa-ev-hmg-api](https://github.com/AwsomeFox/egmp-aa-ev-hmg-api) (AGPL-3.0), wired up here without HMG-API.
 
 [NEMESIS](https://github.com/xwtk/hmg_nemesis) (xwtk), [HMG Leafia Plus](https://github.com/VysseCodes/HMG-Leafia-Plus) (including `lpatch`, GPL-3.0), [aa-proxy-rs](https://github.com/aa-proxy/aa-proxy-rs), [open-android-auto](https://github.com/mrmees/open-android-auto), [gen5w-preconditioning](https://github.com/paytondevs/gen5w-preconditioning).

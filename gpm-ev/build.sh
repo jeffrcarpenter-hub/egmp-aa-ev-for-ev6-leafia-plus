@@ -17,7 +17,7 @@ mkdir -p build/classes build/dex
 javac ${JAVAC_ANDROID:--source 8 -target 8 -bootclasspath "$ANDROID_HOME/platforms/android-19/android.jar"} \
     -d build/classes \
     src/$PKG/EvModelSender.java src/$PKG/EvModelTemplate.java src/$PKG/EvLogger.java \
-    src/$PKG/EvCar.java src/$PKG/CarIds.java src/$PKG/EvDriveLog.java src/$PKG/EvRowAgg.java \
+    src/$PKG/EvCar.java src/$PKG/CarIds.java src/$PKG/SocCurve.java src/$PKG/LiveData.java src/$PKG/EvDriveLog.java src/$PKG/EvRowAgg.java \
     src/$PKG/NavProto.java src/$PKG/PrecondCore.java src/$PKG/Precond.java \
     stubs/$PKG/SensorSource.java \
     stubs/com/hkmc/cluster/NavigationCluster.java \
@@ -31,6 +31,8 @@ javac ${JAVAC_ANDROID:--source 8 -target 8 -bootclasspath "$ANDROID_HOME/platfor
     build/classes/$PKG/EvLogger*.class \
     build/classes/$PKG/EvCar*.class \
     build/classes/$PKG/CarIds*.class \
+    build/classes/$PKG/SocCurve*.class \
+    build/classes/$PKG/LiveData*.class \
     build/classes/$PKG/EvDriveLog*.class \
     build/classes/$PKG/EvRowAgg*.class \
     build/classes/$PKG/NavProto*.class \

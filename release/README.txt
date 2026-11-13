@@ -6,6 +6,9 @@ Makes Google Maps on Android Auto treat the car as an EV:
 - battery % on arrival, charging stops, charge times and range, from the
   battery's live energy and its real (learned) usable capacity, with a
   cold-weather model driven by the live outside temperature;
+- Maps' battery % matches the car's own (dash) battery %;
+- live battery %, range and odometer for phone apps that read the car
+  through Android Auto (A Better Route Planner and others);
 - battery preconditioning: when the next stop on the Maps route is a fast
   charger (over 50 kW) at most 60 minutes away, the car is asked to warm
   the battery, the same way its own navigation does. Always on. To turn it

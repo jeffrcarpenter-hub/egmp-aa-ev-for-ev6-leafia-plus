@@ -106,9 +106,20 @@ public final class EvModelSender {
             sThread.start();
             Log.i(TAG, "started");
         }
+        // battery %, range and odometer for phone apps (sensors 6 and 5)
+        try {
+            LiveData.start(LiveData.forSensorSource(source));
+        } catch (Throwable t) {
+            Log.w(TAG, "live battery data not started: " + t);
+        }
     }
 
     public static void stop() {
+        try {
+            LiveData.stop();
+        } catch (Throwable t) {
+            Log.w(TAG, "live battery data stop: " + t);
+        }
         Thread t;
         synchronized (LOCK) {
             sRunning = false;
@@ -191,6 +202,7 @@ public final class EvModelSender {
                 : Integer.MIN_VALUE);
         writeFloatLe(msg, EvModelTemplate.ROAD_A_OFFSET, roadA);
         int rc = sSource.sendRawMessage(msg);
+        sendBatteryCurve(wh, cap, halfPct);
         sRoadA = roadA;
         Log.i(TAG, "energy model sent: " + wh + " Wh of " + cap
                 + " Wh (" + capacitySource() + "), soc=" + halfPct
@@ -198,6 +210,29 @@ public final class EvModelSender {
                 + ", out=" + (outOk ? String.valueOf(outC) : "?")
                 + "C, A=" + Math.round(roadA) + "N, " + EvCar.navSummary());
     }
+
+    // ---- the battery % curve (SocCurve, sensor 26) -----------------------------
+    // From AwsomeFox/egmp-aa-ev-hmg-api: Maps' battery percentages match the dash.
+
+    /** Sends the curve as its own 0x8003 message; never throws (the model went out already). */
+    private static void sendBatteryCurve(int wh, int cap, int halfPct) {
+        try {
+            if (cap <= 0 || halfPct <= 0) {
+                return;
+            }
+            float raw = wh * 100f / cap;
+            int rc = sSource.sendRawMessage(SocCurve.message(raw, halfPct / 2f));
+            if (rc != 0 || !sBatteryCurveLogged) {
+                sBatteryCurveLogged = true;
+                Log.i(TAG, "battery % curve sent: raw " + Math.round(raw * 10) / 10f
+                        + "% shows as " + halfPct / 2f + "%, rc=" + rc);
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "battery % curve not sent: " + t);
+        }
+    }
+
+    private static boolean sBatteryCurveLogged;
 
     private static int sTickFailures;
 

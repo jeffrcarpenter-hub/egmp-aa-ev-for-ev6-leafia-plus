@@ -4,7 +4,8 @@
 Applies the three instruction patches designed in docs/RESEARCH.md section 5d on top
 of Leafia v1.0.5's patched library (md5 c08410a8d32a615b1aa805cd8a243d52):
 
-  1. SensorType_IsValid (0x144ec2): cmp r0,#20 -> cmp r0,#22
+  1. SensorType_IsValid (0x144ec2): cmp r0,#20 -> cmp r0,#25 (types up to 26:
+     23 energy model, 26 the battery % curve, as AwsomeFox/egmp-aa-ev-hmg-api)
      so a type-23 SensorRequest parses instead of being dropped.
   2. handleSensorRequest default branch (0xbb29e): mvn.w r7,#8 -> mov.w r7,#0
      so registered sensors outside 1..21 get a SUCCESS reply instead of -9.
@@ -61,8 +62,8 @@ PATCHES = [
     (
         0x144EC2,
         bytes.fromhex("1428"),  # cmp r0, #20
-        bytes.fromhex("1628"),  # cmp r0, #22  -> types 1..23 valid
-        "SensorType_IsValid: accept sensor types 1..23",
+        bytes.fromhex("1928"),  # cmp r0, #25  -> types 1..26 valid
+        "SensorType_IsValid: accept sensor types 1..26",
     ),
     (
         0xBB29E,
